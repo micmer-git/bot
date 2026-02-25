@@ -69,8 +69,9 @@
     <section class="panel">
       <h2>Gateway connection</h2>
       <div class="row"><input id="gwUrl" placeholder="Gateway URL (optional)" style="flex:1"/><input id="gwToken" placeholder="Gateway token (optional)" style="flex:1"/></div>
+      <div class="row" style="margin-top:8px;"><input id="bridgeUrl" placeholder="Bridge URL (recommended for Pages) e.g. http://127.0.0.1:8787" style="flex:1"/><input id="bridgeKey" placeholder="Bridge key" style="flex:1"/></div>
       <div class="row" style="margin-top:8px;"><button id="saveConn">Save</button><button id="loadCron">Refresh cron</button><button id="loadSess">Refresh sessions</button></div>
-      <p class="small muted" style="margin:8px 0 0;">For PR website usage, if CORS blocks API calls use a tiny proxy endpoint.</p>
+      <p class="small muted" style="margin:8px 0 0;">Tip: on GitHub Pages use local companion bridge for CORS-safe control + Obsidian file APIs.</p>
     </section>
 
     <section class="panel">
@@ -87,7 +88,7 @@
         <button id="openObsidian">Open Obsidian app</button>
         <input id="vaultPath" placeholder="Vault folder path" style="flex:1"/>
       </div>
-      <div class="row"><button id="saveVault">Save vault path</button><button id="openVaultFolder">Open vault in file explorer</button></div>
+      <div class="row"><button id="saveVault">Save vault path</button><button id="openVaultFolder">Open vault in file explorer</button><button id="listVault">List vault via bridge</button></div>
       <div id="flash" class="small"></div>
     </section>
   </div>
@@ -137,7 +138,7 @@
 
 const $=(id)=>document.getElementById(id);
 const state={
-  conn:JSON.parse(localStorage.getItem('micmer_ops_conn_v1')||'{"url":"","token":""}'),
+  conn:JSON.parse(localStorage.getItem('micmer_ops_conn_v1')||'{"url":"","token":"","bridgeUrl":"","bridgeKey":""}'),
   board:JSON.parse(localStorage.getItem('micmer_ops_board_v1')||'{"tasks":[]}'),
   vault:localStorage.getItem('micmer_obsidian_vault_path')||'',
   files:[]
@@ -147,10 +148,21 @@ function flash(msg, cls='muted'){const el=$('flash');el.className='small '+cls;e
 function scrollToId(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'})}
 window.scrollToId=scrollToId;
 
-function loadConn(){ $('gwUrl').value=state.conn.url||''; $('gwToken').value=state.conn.token||''; $('vaultPath').value=state.vault||''; }
-function saveConn(){state.conn={url:$('gwUrl').value.trim(),token:$('gwToken').value.trim()};localStorage.setItem('micmer_ops_conn_v1',JSON.stringify(state.conn));flash('Connection saved','ok')}
+function loadConn(){ $('gwUrl').value=state.conn.url||''; $('gwToken').value=state.conn.token||''; $('bridgeUrl').value=state.conn.bridgeUrl||''; $('bridgeKey').value=state.conn.bridgeKey||''; $('vaultPath').value=state.vault||''; }
+function saveConn(){state.conn={url:$('gwUrl').value.trim(),token:$('gwToken').value.trim(),bridgeUrl:$('bridgeUrl').value.trim(),bridgeKey:$('bridgeKey').value.trim()};localStorage.setItem('micmer_ops_conn_v1',JSON.stringify(state.conn));flash('Connection saved','ok')}
 
 async function api(path, method='GET', body){
+  const bridge = (state.conn.bridgeUrl||'').trim();
+  if (bridge) {
+    const res = await fetch(bridge.replace(/\/$/,'') + '/proxy/openclaw', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', ...(state.conn.bridgeKey?{'x-bridge-key':state.conn.bridgeKey}:{})},
+      body: JSON.stringify({ path, method, body, gatewayUrl: state.conn.url||undefined, gatewayToken: state.conn.token||undefined })
+    });
+    const j = await res.json();
+    if (!res.ok || !j.ok) throw new Error((j && (j.error || (j.data && j.data.error))) || `bridge ${res.status}`);
+    return j.data;
+  }
   const base=state.conn.url||''; const headers={'Content-Type':'application/json'};
   if(state.conn.token) headers['Authorization']='Bearer '+state.conn.token;
   const res=await fetch(base+path,{method,headers,body:body?JSON.stringify(body):undefined});
@@ -199,6 +211,19 @@ function openVaultFolder(){
   if(!p) return flash('Set vault path first','warn');
   alert('For security, browsers cannot open arbitrary local folders directly from web pages. Use this path in your file picker:\n'+p);
 }
+async function listVault(){
+  const bridge = (state.conn.bridgeUrl||'').trim();
+  if(!bridge) return flash('Set bridge URL first','warn');
+  try {
+    const p=(state.vault||$('vaultPath').value.trim()||'.');
+    const r=await fetch(bridge.replace(/\/$/,'')+'/obsidian/list?path='+encodeURIComponent('.'),{headers:{...(state.conn.bridgeKey?{'x-bridge-key':state.conn.bridgeKey}:{})}});
+    const j=await r.json();
+    if(!r.ok) throw new Error(j.error||'list failed');
+    $('viewer').innerHTML = `<pre>${escapeHtml(JSON.stringify(j,null,2))}</pre>`;
+    $('selectedName').textContent='Vault listing';
+    flash('Vault listed via bridge','ok');
+  } catch(e){ flash(e.message,'bad'); }
+}
 
 // File explorer + html loader
 function clearFiles(){state.files=[];renderFiles();$('viewer').innerHTML='<div class="muted small" style="padding:12px;">No files loaded.</div>';$('selectedName').textContent='-'}
@@ -210,7 +235,7 @@ function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','
 window.runJob=runJob; window.toggleJob=toggleJob; window.delTask=delTask;
 $('saveConn').onclick=saveConn; $('testConn').onclick=testConn; $('loadCron').onclick=loadCron; $('loadSess').onclick=loadSessions; $('addCron').onclick=addOneShot;
 $('addTask').onclick=addTask; $('exportBoard').onclick=exportBoard; $('importBoardBtn').onclick=()=>$('importBoard').click(); $('importBoard').onchange=(e)=>e.target.files[0]&&importBoard(e.target.files[0]);
-$('saveVault').onclick=saveVault; $('openObsidian').onclick=openObsidian; $('openVaultFolder').onclick=openVaultFolder;
+$('saveVault').onclick=saveVault; $('openObsidian').onclick=openObsidian; $('openVaultFolder').onclick=openVaultFolder; $('listVault').onclick=listVault;
 $('pickFiles').onclick=pickFiles; $('clearFiles').onclick=clearFiles;
 
 loadConn(); renderBoard();
