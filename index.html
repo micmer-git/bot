@@ -184,7 +184,7 @@ const state={
   board:JSON.parse(localStorage.getItem('micmer_ops_board_v1')||'{"tasks":[]}'),
   vault:localStorage.getItem('micmer_obsidian_vault_path')||'',
   files:[],
-  northstar:JSON.parse(localStorage.getItem('micmer_northstar_v1')||'{"ff":"qualified subscribers/post","kineo":"activated athletes/week","ops":"PR merged with zero rule violations","growth":"","product":"","content":"","kill":"Cut tasks that don't move a metric in 7 days"}')
+  northstar:JSON.parse(localStorage.getItem('micmer_northstar_v1')||'{"ff":"qualified subscribers/post","kineo":"activated athletes/week","ops":"PR merged with zero rule violations","growth":"","product":"","content":"","kill":"Cut tasks that do not move a metric in 7 days"}')
 };
 
 function flash(msg, cls='muted'){const el=$('flash');el.className='small '+cls;el.textContent=msg;setTimeout(()=>el.textContent='',2600)}
