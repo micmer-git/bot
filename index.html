@@ -122,6 +122,21 @@
       </div>
     </div>
   </section>
+
+  <section class="panel" style="margin-top:12px;">
+    <h2>Mini Obsidian editor (Markdown)</h2>
+    <div class="row" style="margin-bottom:8px;">
+      <input id="mdPath" placeholder="Vault file path, e.g. Daily/2026-02-25.md" style="flex:1"/>
+      <button id="mdLoad">Load</button>
+      <button id="mdSave">Save</button>
+      <button id="mdPreview">Preview</button>
+    </div>
+    <div class="grid g2" style="grid-template-columns:1fr 1fr;">
+      <textarea id="mdEditor" style="min-height:260px;font-family:ui-monospace, SFMono-Regular, Menlo, monospace" placeholder="# Notes\n\nWrite markdown here..."></textarea>
+      <div class="viewer" id="mdRendered"><div class="muted small" style="padding:12px;">Markdown preview</div></div>
+    </div>
+    <div class="small muted" style="margin-top:8px;">Uses local companion bridge endpoints /obsidian/read and /obsidian/write.</div>
+  </section>
 </div>
 
 <div class="dock"><button onclick="scrollToId('cronTbody')">🕒 Cron</button><button onclick="scrollToId('sessTbody')">🤖 Sessions</button><button onclick="scrollToId('kanban')">📋 Tasks</button><button onclick="scrollToId('fileList')">📁 Files</button></div>
@@ -215,7 +230,6 @@ async function listVault(){
   const bridge = (state.conn.bridgeUrl||'').trim();
   if(!bridge) return flash('Set bridge URL first','warn');
   try {
-    const p=(state.vault||$('vaultPath').value.trim()||'.');
     const r=await fetch(bridge.replace(/\/$/,'')+'/obsidian/list?path='+encodeURIComponent('.'),{headers:{...(state.conn.bridgeKey?{'x-bridge-key':state.conn.bridgeKey}:{})}});
     const j=await r.json();
     if(!r.ok) throw new Error(j.error||'list failed');
@@ -223,6 +237,41 @@ async function listVault(){
     $('selectedName').textContent='Vault listing';
     flash('Vault listed via bridge','ok');
   } catch(e){ flash(e.message,'bad'); }
+}
+
+function mdToHtml(md){
+  return escapeHtml(md)
+    .replace(/^###\s+(.*)$/gm,'<h3>$1</h3>')
+    .replace(/^##\s+(.*)$/gm,'<h2>$1</h2>')
+    .replace(/^#\s+(.*)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\[(.*?)\]\((.*?)\)/g,'<a href="$2" target="_blank" rel="noreferrer">$1</a>')
+    .replace(/\n/g,'<br/>');
+}
+function renderMarkdown(){ $('mdRendered').innerHTML = `<div style="padding:12px">${mdToHtml($('mdEditor').value||'')}</div>`; }
+async function loadMarkdown(){
+  const bridge=(state.conn.bridgeUrl||'').trim(); const p=$('mdPath').value.trim();
+  if(!bridge) return flash('Set bridge URL first','warn');
+  if(!p) return flash('Set markdown path first','warn');
+  try{
+    const r=await fetch(bridge.replace(/\/$/,'')+'/obsidian/read?path='+encodeURIComponent(p),{headers:{...(state.conn.bridgeKey?{'x-bridge-key':state.conn.bridgeKey}:{})}});
+    const j=await r.json(); if(!r.ok) throw new Error(j.error||'read failed');
+    $('mdEditor').value = j.content || '';
+    renderMarkdown();
+    flash('Markdown loaded','ok');
+  }catch(e){flash(e.message,'bad');}
+}
+async function saveMarkdown(){
+  const bridge=(state.conn.bridgeUrl||'').trim(); const p=$('mdPath').value.trim(); const c=$('mdEditor').value;
+  if(!bridge) return flash('Set bridge URL first','warn');
+  if(!p) return flash('Set markdown path first','warn');
+  try{
+    const r=await fetch(bridge.replace(/\/$/,'')+'/obsidian/write',{method:'POST',headers:{'Content-Type':'application/json',...(state.conn.bridgeKey?{'x-bridge-key':state.conn.bridgeKey}:{})},body:JSON.stringify({path:p,content:c})});
+    const j=await r.json(); if(!r.ok) throw new Error(j.error||'write failed');
+    flash('Markdown saved','ok');
+  }catch(e){flash(e.message,'bad');}
 }
 
 // File explorer + html loader
@@ -237,8 +286,9 @@ $('saveConn').onclick=saveConn; $('testConn').onclick=testConn; $('loadCron').on
 $('addTask').onclick=addTask; $('exportBoard').onclick=exportBoard; $('importBoardBtn').onclick=()=>$('importBoard').click(); $('importBoard').onchange=(e)=>e.target.files[0]&&importBoard(e.target.files[0]);
 $('saveVault').onclick=saveVault; $('openObsidian').onclick=openObsidian; $('openVaultFolder').onclick=openVaultFolder; $('listVault').onclick=listVault;
 $('pickFiles').onclick=pickFiles; $('clearFiles').onclick=clearFiles;
+$('mdLoad').onclick=loadMarkdown; $('mdSave').onclick=saveMarkdown; $('mdPreview').onclick=renderMarkdown; $('mdEditor').addEventListener('input',renderMarkdown);
 
-loadConn(); renderBoard();
+loadConn(); renderBoard(); renderMarkdown();
 </script>
 </body>
 </html>
