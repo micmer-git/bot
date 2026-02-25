@@ -70,8 +70,8 @@
       <h2>Gateway connection</h2>
       <div class="row"><input id="gwUrl" placeholder="Gateway URL (optional)" style="flex:1"/><input id="gwToken" placeholder="Gateway token (optional)" style="flex:1"/></div>
       <div class="row" style="margin-top:8px;"><input id="bridgeUrl" placeholder="Bridge URL (recommended for Pages) e.g. http://127.0.0.1:8787" style="flex:1"/><input id="bridgeKey" placeholder="Bridge key" style="flex:1"/></div>
-      <div class="row" style="margin-top:8px;"><button id="saveConn">Save</button><button id="loadCron">Refresh cron</button><button id="loadSess">Refresh sessions</button></div>
-      <p class="small muted" style="margin:8px 0 0;">Tip: on GitHub Pages use local companion bridge for CORS-safe control + Obsidian file APIs.</p>
+      <div class="row" style="margin-top:8px;"><button id="saveConn">Save</button><button id="autoSetup">Auto setup</button><button id="loadCron">Refresh cron</button><button id="loadSess">Refresh sessions</button></div>
+      <p class="small muted" style="margin:8px 0 0;">Tip: Auto setup avoids GitHub Pages 404 by binding to local companion bridge when available.</p>
     </section>
 
     <section class="panel">
@@ -166,6 +166,29 @@ window.scrollToId=scrollToId;
 function loadConn(){ $('gwUrl').value=state.conn.url||''; $('gwToken').value=state.conn.token||''; $('bridgeUrl').value=state.conn.bridgeUrl||''; $('bridgeKey').value=state.conn.bridgeKey||''; $('vaultPath').value=state.vault||''; }
 function saveConn(){state.conn={url:$('gwUrl').value.trim(),token:$('gwToken').value.trim(),bridgeUrl:$('bridgeUrl').value.trim(),bridgeKey:$('bridgeKey').value.trim()};localStorage.setItem('micmer_ops_conn_v1',JSON.stringify(state.conn));flash('Connection saved','ok')}
 
+async function probeBridge(url){
+  try{
+    const r=await fetch(url.replace(/\/$/,'')+'/health');
+    return r.ok;
+  }catch{return false;}
+}
+async function autoSetupConnection(){
+  const candidates=[];
+  if ((state.conn.bridgeUrl||'').trim()) candidates.push(state.conn.bridgeUrl.trim());
+  candidates.push('http://127.0.0.1:8787','http://localhost:8787');
+  for (const c of candidates){
+    if (await probeBridge(c)){
+      state.conn.bridgeUrl=c;
+      localStorage.setItem('micmer_ops_conn_v1',JSON.stringify(state.conn));
+      $('bridgeUrl').value=c;
+      flash('Auto setup: bridge connected','ok');
+      return {mode:'bridge',url:c};
+    }
+  }
+  if ((state.conn.url||'').trim()) return {mode:'gateway',url:state.conn.url.trim()};
+  throw new Error('No bridge/gateway configured. Use Auto setup or set Bridge URL.');
+}
+
 async function api(path, method='GET', body){
   const bridge = (state.conn.bridgeUrl||'').trim();
   if (bridge) {
@@ -178,10 +201,18 @@ async function api(path, method='GET', body){
     if (!res.ok || !j.ok) throw new Error((j && (j.error || (j.data && j.data.error))) || `bridge ${res.status}`);
     return j.data;
   }
-  const base=state.conn.url||''; const headers={'Content-Type':'application/json'};
+  const base=(state.conn.url||'').trim();
+  if(!base){
+    await autoSetupConnection();
+    return api(path, method, body);
+  }
+  const headers={'Content-Type':'application/json'};
   if(state.conn.token) headers['Authorization']='Bearer '+state.conn.token;
   const res=await fetch(base+path,{method,headers,body:body?JSON.stringify(body):undefined});
-  if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  if(!res.ok){
+    if (res.status===404 && !state.conn.bridgeUrl) throw new Error('404 from direct API. Click Auto setup to bind local bridge.');
+    throw new Error(`${res.status} ${res.statusText}`);
+  }
   return res.json();
 }
 async function testConn(){
@@ -282,13 +313,14 @@ function openFile(i,el){const f=state.files[i]; if(!f) return; document.querySel
 function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 
 window.runJob=runJob; window.toggleJob=toggleJob; window.delTask=delTask;
-$('saveConn').onclick=saveConn; $('testConn').onclick=testConn; $('loadCron').onclick=loadCron; $('loadSess').onclick=loadSessions; $('addCron').onclick=addOneShot;
+$('saveConn').onclick=saveConn; $('autoSetup').onclick=autoSetupConnection; $('testConn').onclick=testConn; $('loadCron').onclick=loadCron; $('loadSess').onclick=loadSessions; $('addCron').onclick=addOneShot;
 $('addTask').onclick=addTask; $('exportBoard').onclick=exportBoard; $('importBoardBtn').onclick=()=>$('importBoard').click(); $('importBoard').onchange=(e)=>e.target.files[0]&&importBoard(e.target.files[0]);
 $('saveVault').onclick=saveVault; $('openObsidian').onclick=openObsidian; $('openVaultFolder').onclick=openVaultFolder; $('listVault').onclick=listVault;
 $('pickFiles').onclick=pickFiles; $('clearFiles').onclick=clearFiles;
 $('mdLoad').onclick=loadMarkdown; $('mdSave').onclick=saveMarkdown; $('mdPreview').onclick=renderMarkdown; $('mdEditor').addEventListener('input',renderMarkdown);
 
 loadConn(); renderBoard(); renderMarkdown();
+setTimeout(()=>{autoSetupConnection().catch(()=>{});},150);
 </script>
 </body>
 </html>
