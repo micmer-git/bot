@@ -260,9 +260,10 @@ function openVaultFolder(){
 }
 async function listVault(){
   const bridge = (state.conn.bridgeUrl||'').trim();
+  const p=(state.vault||$('vaultPath').value.trim()||'.');
   if(!bridge) return flash('Set bridge URL first','warn');
   try {
-    const r=await fetch(bridge.replace(/\/$/,'')+'/obsidian/list?path='+encodeURIComponent('.'),{headers:{...(state.conn.bridgeKey?{'x-bridge-key':state.conn.bridgeKey}:{})}});
+    const r=await fetch(bridge.replace(/\/$/,'')+'/obsidian/list?path='+encodeURIComponent(p),{headers:{...(state.conn.bridgeKey?{'x-bridge-key':state.conn.bridgeKey}:{})}});
     const j=await r.json();
     if(!r.ok) throw new Error(j.error||'list failed');
     $('viewer').innerHTML = `<pre>${escapeHtml(JSON.stringify(j,null,2))}</pre>`;
@@ -321,7 +322,7 @@ $('pickFiles').onclick=pickFiles; $('clearFiles').onclick=clearFiles;
 $('mdLoad').onclick=loadMarkdown; $('mdSave').onclick=saveMarkdown; $('mdPreview').onclick=renderMarkdown; $('mdEditor').addEventListener('input',renderMarkdown);
 
 loadConn(); renderBoard(); renderMarkdown();
-setTimeout(()=>{autoSetupConnection().catch(()=>{});},150);
+setTimeout(async ()=>{try{await autoSetupConnection(); await loadCron(); await loadSessions();}catch(_e){}},150);
 </script>
 </body>
 </html>
