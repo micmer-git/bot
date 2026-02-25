@@ -164,7 +164,7 @@ function flash(msg, cls='muted'){const el=$('flash');el.className='small '+cls;e
 function scrollToId(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'})}
 window.scrollToId=scrollToId;
 
-function loadConn(){ state.conn={...DEFAULT_CONN,...state.conn}; $('gwUrl').value=state.conn.url||''; $('gwToken').value=state.conn.token||''; $('bridgeUrl').value=state.conn.bridgeUrl||''; $('bridgeKey').value=state.conn.bridgeKey||''; $('vaultPath').value=state.vault||''; localStorage.setItem('micmer_ops_conn_v1',JSON.stringify(state.conn)); }
+function loadConn(){ state.conn={...DEFAULT_CONN,...state.conn}; if((state.conn.url||'').includes(':8788') && !(state.conn.bridgeUrl||'')){ state.conn.bridgeUrl=state.conn.url; state.conn.bridgeKey=state.conn.token||state.conn.bridgeKey||''; state.conn.url=''; state.conn.token=''; } $('gwUrl').value=state.conn.url||''; $('gwToken').value=state.conn.token||''; $('bridgeUrl').value=state.conn.bridgeUrl||''; $('bridgeKey').value=state.conn.bridgeKey||''; $('vaultPath').value=state.vault||''; localStorage.setItem('micmer_ops_conn_v1',JSON.stringify(state.conn)); }
 function saveConn(){state.conn={url:$('gwUrl').value.trim(),token:$('gwToken').value.trim(),bridgeUrl:$('bridgeUrl').value.trim(),bridgeKey:$('bridgeKey').value.trim()};localStorage.setItem('micmer_ops_conn_v1',JSON.stringify(state.conn));flash('Connection saved','ok')}
 
 async function probeBridge(url){
