@@ -152,8 +152,9 @@
 })();
 
 const $=(id)=>document.getElementById(id);
+const DEFAULT_CONN={url:'',token:'',bridgeUrl:'http://89.168.23.53:8788',bridgeKey:'55672c4e55b1305ba3ff2c6119ed1a2b0b507f0c5e4ff2a7c5ae0ae503d988c1'};
 const state={
-  conn:JSON.parse(localStorage.getItem('micmer_ops_conn_v1')||'{"url":"","token":"","bridgeUrl":"","bridgeKey":""}'),
+  conn:(()=>{try{const c=JSON.parse(localStorage.getItem('micmer_ops_conn_v1')||'{}');return {...DEFAULT_CONN,...c};}catch{return {...DEFAULT_CONN};}})(),
   board:JSON.parse(localStorage.getItem('micmer_ops_board_v1')||'{"tasks":[]}'),
   vault:localStorage.getItem('micmer_obsidian_vault_path')||'',
   files:[]
@@ -163,7 +164,7 @@ function flash(msg, cls='muted'){const el=$('flash');el.className='small '+cls;e
 function scrollToId(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'})}
 window.scrollToId=scrollToId;
 
-function loadConn(){ $('gwUrl').value=state.conn.url||''; $('gwToken').value=state.conn.token||''; $('bridgeUrl').value=state.conn.bridgeUrl||''; $('bridgeKey').value=state.conn.bridgeKey||''; $('vaultPath').value=state.vault||''; }
+function loadConn(){ state.conn={...DEFAULT_CONN,...state.conn}; $('gwUrl').value=state.conn.url||''; $('gwToken').value=state.conn.token||''; $('bridgeUrl').value=state.conn.bridgeUrl||''; $('bridgeKey').value=state.conn.bridgeKey||''; $('vaultPath').value=state.vault||''; localStorage.setItem('micmer_ops_conn_v1',JSON.stringify(state.conn)); }
 function saveConn(){state.conn={url:$('gwUrl').value.trim(),token:$('gwToken').value.trim(),bridgeUrl:$('bridgeUrl').value.trim(),bridgeKey:$('bridgeKey').value.trim()};localStorage.setItem('micmer_ops_conn_v1',JSON.stringify(state.conn));flash('Connection saved','ok')}
 
 async function probeBridge(url){
@@ -175,7 +176,7 @@ async function probeBridge(url){
 async function autoSetupConnection(){
   const candidates=[];
   if ((state.conn.bridgeUrl||'').trim()) candidates.push(state.conn.bridgeUrl.trim());
-  candidates.push('http://127.0.0.1:8787','http://localhost:8787');
+  candidates.push('http://89.168.23.53:8788','http://127.0.0.1:8787','http://localhost:8787','http://127.0.0.1:8788','http://localhost:8788');
   for (const c of candidates){
     if (await probeBridge(c)){
       state.conn.bridgeUrl=c;
