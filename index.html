@@ -182,7 +182,7 @@ const DEFAULT_CONN={url:'',token:'',bridgeUrl:'https://89-168-23-53.sslip.io',br
 const state={
   conn:(()=>{try{const c=JSON.parse(localStorage.getItem('micmer_ops_conn_v1')||'{}');return {...DEFAULT_CONN,...c};}catch{return {...DEFAULT_CONN};}})(),
   board:JSON.parse(localStorage.getItem('micmer_ops_board_v1')||'{"tasks":[]}'),
-  vault:localStorage.getItem('micmer_obsidian_vault_path')||'',
+  vault:localStorage.getItem('micmer_obsidian_vault_path')||'/home/ubuntu/.openclaw/workspace/work/obsidian_vault',
   files:[],
   northstar:JSON.parse(localStorage.getItem('micmer_northstar_v1')||'{"ff":"qualified subscribers/post","kineo":"activated athletes/week","ops":"PR merged with zero rule violations","growth":"","product":"","content":"","kill":"Cut tasks that do not move a metric in 7 days"}')
 };
