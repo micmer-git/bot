@@ -3,20 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>micmer dynamic ops dashboard</title>
+  <title>micmer bot ops desktop</title>
   <style>
-    :root{--bg:#0b1020;--panel:#111936;--card:#182241;--muted:#93a1c6;--txt:#e8ecff;--acc:#59d0ff;--ok:#36d399;--warn:#fbbf24;--bad:#f87171;--b:#2a3760}
-    *{box-sizing:border-box} body{margin:0;font:14px/1.4 Inter,system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
-    .wrap{max-width:1380px;margin:0 auto;padding:16px}
-    h1{font-size:20px;margin:0 0 10px} h2{font-size:16px;margin:0 0 10px}
-    .grid{display:grid;gap:12px} .g3{grid-template-columns:1.2fr 1fr 1fr} .g2{grid-template-columns:1fr 1fr}
-    .panel{background:var(--panel);border:1px solid var(--b);border-radius:14px;padding:12px}
+    :root{--bg:#0a0f1f;--panel:#111936;--card:#182241;--muted:#93a1c6;--txt:#e8ecff;--acc:#59d0ff;--ok:#36d399;--warn:#fbbf24;--bad:#f87171;--b:#2a3760}
+    *{box-sizing:border-box} body{margin:0;font:14px/1.4 Inter,system-ui,Segoe UI,Roboto,sans-serif;background:radial-gradient(circle at 0 0,#152a55,#090f1d 60%);color:var(--txt)}
+    .wrap{max-width:1500px;margin:0 auto;padding:14px}
+    h1{font-size:20px;margin:0 0 4px} h2{font-size:15px;margin:0 0 10px}
+    .topbar{display:flex;justify-content:space-between;gap:10px;align-items:center;background:rgba(16,27,57,.7);border:1px solid var(--b);padding:8px 12px;border-radius:12px;position:sticky;top:8px;backdrop-filter:blur(6px);z-index:30}
+    .grid{display:grid;gap:12px} .g3{grid-template-columns:1.1fr 1fr 1fr} .g2{grid-template-columns:1fr 1fr}
+    .panel{background:rgba(17,25,54,.92);border:1px solid var(--b);border-radius:14px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     input,select,textarea,button{background:#0e1631;color:var(--txt);border:1px solid var(--b);border-radius:8px;padding:8px 10px}
-    input,select,textarea{min-height:34px} textarea{width:100%;min-height:70px}
+    input,select,textarea{min-height:34px} textarea{width:100%;min-height:64px}
     button{cursor:pointer} button:hover{border-color:var(--acc)}
     .muted{color:var(--muted)} .small{font-size:12px}
-    .list{max-height:360px;overflow:auto;border:1px solid var(--b);border-radius:10px}
+    .list{max-height:340px;overflow:auto;border:1px solid var(--b);border-radius:10px}
     table{width:100%;border-collapse:collapse} th,td{padding:8px;border-bottom:1px solid #243155;vertical-align:top} th{text-align:left;color:var(--muted);font-size:12px}
     .pill{font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--b)}
     .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
@@ -28,92 +29,65 @@
     .task{background:#101a38;border:1px solid #2a3968;border-radius:10px;padding:8px;margin:8px 0;cursor:grab}
     .task .t{font-weight:600} .task .m{font-size:12px;color:var(--muted)}
     .drop.dragover{outline:2px dashed var(--acc);outline-offset:2px}
-    .actions button{padding:4px 8px;font-size:12px}
-    @media (max-width:1100px){.g3,.g2{grid-template-columns:1fr}}
+
+    .desktop{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    .explorer{max-height:420px;overflow:auto;border:1px solid var(--b);border-radius:10px;padding:8px;background:#0d1530}
+    .file{padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12px;border:1px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .file:hover{background:#132047;border-color:#29457e}
+    .file.active{background:#19305f;border-color:#59d0ff}
+    .viewer{border:1px solid var(--b);border-radius:10px;background:#0d1530;min-height:420px;overflow:auto}
+    .viewer pre{margin:0;padding:12px;white-space:pre-wrap;font-size:12px}
+    .viewer iframe{width:100%;height:420px;border:0;background:#fff}
+
+    .dock{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(9,14,31,.85);border:1px solid var(--b);border-radius:16px;padding:6px 8px;display:flex;gap:8px;backdrop-filter:blur(6px)}
+    .dock button{padding:8px 10px;border-radius:10px;font-size:12px}
+
+    #lockScreen{position:fixed;inset:0;background:#070b17;display:flex;align-items:center;justify-content:center;z-index:99999}
+    #lockCard{background:#111936;border:1px solid #2a3760;border-radius:14px;padding:20px;max-width:420px;width:92%}
+    #lockCard h2{margin:0 0 8px;font-size:18px} #lockCard p{margin:0 0 12px;color:#93a1c6;font-size:13px}
+    #lockCard input{width:100%;padding:10px} #lockErr{color:#f87171;font-size:12px;min-height:16px;margin-top:6px}
+
+    @media (max-width:1180px){.g3,.g2,.desktop{grid-template-columns:1fr}.dock{position:static;transform:none;margin-top:12px;justify-content:center}}
   </style>
-
-<style>
-#lockScreen{position:fixed;inset:0;background:#070b17;display:flex;align-items:center;justify-content:center;z-index:99999}
-#lockCard{background:#111936;border:1px solid #2a3760;border-radius:14px;padding:20px;max-width:420px;width:92%;color:#e8ecff;font-family:Inter,system-ui,sans-serif}
-#lockCard h2{margin:0 0 8px;font-size:18px}
-#lockCard p{margin:0 0 12px;color:#93a1c6;font-size:13px}
-#lockCard input{width:100%;padding:10px;border-radius:8px;border:1px solid #2a3760;background:#0e1631;color:#e8ecff}
-#lockCard button{margin-top:10px;padding:10px 12px;border-radius:8px;border:1px solid #2a3760;background:#0e1631;color:#e8ecff;cursor:pointer}
-#lockErr{color:#f87171;font-size:12px;min-height:16px;margin-top:6px}
-</style>
-
 </head>
 <body>
-
-<div id="lockScreen">
-  <div id="lockCard">
-    <h2>Protected dashboard</h2>
-    <p>Enter password to access.</p>
-    <input id="pw" type="password" placeholder="Password" />
-    <button id="unlock">Unlock</button>
-    <div id="lockErr"></div>
-  </div>
-</div>
-
-
-<script>
-(function(){
-  const KEY='micmer_bot_dash_unlock_v1';
-  const PASS='32Opossums!';
-  function done(){const ls=document.getElementById('lockScreen'); if(ls) ls.remove();}
-  if(sessionStorage.getItem(KEY)==='ok'){done(); return;}
-  function check(){
-    const v=document.getElementById('pw').value;
-    if(v===PASS){sessionStorage.setItem(KEY,'ok'); done();}
-    else document.getElementById('lockErr').textContent='Wrong password';
-  }
-  document.addEventListener('DOMContentLoaded',()=>{
-    document.getElementById('unlock').addEventListener('click',check);
-    document.getElementById('pw').addEventListener('keydown',(e)=>{if(e.key==='Enter') check();});
-  });
-})();
-</script>
-
+<div id="lockScreen"><div id="lockCard"><h2>Protected dashboard</h2><p>Enter password to access.</p><input id="pw" type="password" placeholder="Password" /><button id="unlock">Unlock</button><div id="lockErr"></div></div></div>
 
 <div class="wrap">
-  <h1>🦞 micmer dynamic ops dashboard</h1>
-  <div class="small muted">cron control · activity monitor · trello-like subagent board</div>
+  <div class="topbar">
+    <div>
+      <h1>🦞 micmer bot ops desktop</h1>
+      <div class="small muted">cron control · sessions · task board · file explorer · html loader</div>
+    </div>
+    <div class="row small">
+      <span>Conn:</span><span id="connState" class="pill warn">not tested</span>
+      <button id="testConn">Test connection</button>
+    </div>
+  </div>
 
   <div class="grid g3" style="margin-top:12px;">
     <section class="panel">
       <h2>Gateway connection</h2>
-      <div class="row">
-        <input id="gwUrl" placeholder="Gateway URL (optional)" style="flex:1"/>
-        <input id="gwToken" placeholder="Gateway token (optional)" style="flex:1"/>
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <button id="saveConn">Save</button>
-        <button id="loadCron">Refresh cron</button>
-        <button id="loadSess">Refresh sessions</button>
-      </div>
-      <p class="small muted" style="margin:8px 0 0;">If CORS blocks direct calls on a PR website, use a tiny proxy endpoint.</p>
+      <div class="row"><input id="gwUrl" placeholder="Gateway URL (optional)" style="flex:1"/><input id="gwToken" placeholder="Gateway token (optional)" style="flex:1"/></div>
+      <div class="row" style="margin-top:8px;"><button id="saveConn">Save</button><button id="loadCron">Refresh cron</button><button id="loadSess">Refresh sessions</button></div>
+      <p class="small muted" style="margin:8px 0 0;">For PR website usage, if CORS blocks API calls use a tiny proxy endpoint.</p>
     </section>
 
     <section class="panel">
-      <h2>Quick cron create</h2>
-      <div class="row">
-        <input id="cronName" placeholder="Reminder name" style="flex:1"/>
-        <input id="cronWhen" placeholder="ISO time (UTC) e.g. 2026-02-26T09:00:00Z" style="flex:1"/>
-      </div>
+      <h2>Quick reminder cron</h2>
+      <div class="row"><input id="cronName" placeholder="Reminder name" style="flex:1"/><input id="cronWhen" placeholder="ISO UTC e.g. 2026-02-26T09:00:00Z" style="flex:1"/></div>
       <textarea id="cronText" placeholder="Reminder text (system event)"></textarea>
-      <div class="row">
-        <button id="addCron">Add one-shot reminder</button>
-      </div>
+      <div class="row"><button id="addCron">Add one-shot reminder</button></div>
     </section>
 
     <section class="panel">
-      <h2>Board persistence</h2>
-      <div class="row">
-        <button id="exportBoard">Export JSON</button>
-        <button id="importBoardBtn">Import JSON</button>
-        <input type="file" id="importBoard" accept="application/json" style="display:none" />
+      <h2>Obsidian integration</h2>
+      <div class="small muted">Cannot install Obsidian from GitHub Pages directly. Added quick launch + vault links.</div>
+      <div class="row" style="margin-top:8px;">
+        <button id="openObsidian">Open Obsidian app</button>
+        <input id="vaultPath" placeholder="Vault folder path" style="flex:1"/>
       </div>
-      <p class="small muted">Board autosaves to localStorage key: <code>micmer_ops_board_v1</code></p>
+      <div class="row"><button id="saveVault">Save vault path</button><button id="openVaultFolder">Open vault in file explorer</button></div>
       <div id="flash" class="small"></div>
     </section>
   </div>
@@ -121,174 +95,123 @@
   <div class="grid g2" style="margin-top:12px;">
     <section class="panel">
       <h2>Cron jobs</h2>
-      <div class="list">
-        <table>
-          <thead><tr><th>Name</th><th>Schedule</th><th>Enabled</th><th>Actions</th></tr></thead>
-          <tbody id="cronTbody"><tr><td colspan="4" class="muted">No data yet.</td></tr></tbody>
-        </table>
-      </div>
+      <div class="list"><table><thead><tr><th>Name</th><th>Schedule</th><th>Enabled</th><th>Actions</th></tr></thead><tbody id="cronTbody"><tr><td colspan="4" class="muted">No data yet.</td></tr></tbody></table></div>
     </section>
-
     <section class="panel">
       <h2>Sub-agent activity</h2>
-      <div class="list">
-        <table>
-          <thead><tr><th>Session</th><th>Kind</th><th>Last msg</th><th>When</th></tr></thead>
-          <tbody id="sessTbody"><tr><td colspan="4" class="muted">No data yet.</td></tr></tbody>
-        </table>
-      </div>
+      <div class="list"><table><thead><tr><th>Session</th><th>Kind</th><th>Last msg</th><th>When</th></tr></thead><tbody id="sessTbody"><tr><td colspan="4" class="muted">No data yet.</td></tr></tbody></table></div>
     </section>
   </div>
 
   <section class="panel" style="margin-top:12px;">
-    <div class="row" style="justify-content:space-between">
-      <h2 style="margin:0">Sub-agent task board (drag & drop)</h2>
-      <div class="row actions">
-        <input id="taskTitle" placeholder="New task title" />
-        <input id="taskOwner" placeholder="owner" />
-        <button id="addTask">Add task</button>
-      </div>
-    </div>
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">Sub-agent task board (drag & drop)</h2><div class="row"><input id="taskTitle" placeholder="New task title" /><input id="taskOwner" placeholder="owner" /><button id="addTask">Add task</button><button id="exportBoard">Export JSON</button><button id="importBoardBtn">Import JSON</button><input type="file" id="importBoard" accept="application/json" style="display:none" /></div></div>
+    <div class="kanban" id="kanban"><div class="col"><h3>Backlog</h3><div class="drop" data-col="backlog"></div></div><div class="col"><h3>Planned</h3><div class="drop" data-col="planned"></div></div><div class="col"><h3>Running</h3><div class="drop" data-col="running"></div></div><div class="col"><h3>Blocked</h3><div class="drop" data-col="blocked"></div></div><div class="col"><h3>Done</h3><div class="drop" data-col="done"></div></div></div>
+  </section>
 
-    <div class="kanban" id="kanban">
-      <div class="col"><h3>Backlog</h3><div class="drop" data-col="backlog"></div></div>
-      <div class="col"><h3>Planned</h3><div class="drop" data-col="planned"></div></div>
-      <div class="col"><h3>Running</h3><div class="drop" data-col="running"></div></div>
-      <div class="col"><h3>Blocked</h3><div class="drop" data-col="blocked"></div></div>
-      <div class="col"><h3>Done</h3><div class="drop" data-col="done"></div></div>
+  <section class="panel" style="margin-top:12px;">
+    <h2>Desktop file explorer + HTML loader</h2>
+    <div class="desktop">
+      <div>
+        <div class="row"><button id="pickFiles">Load files/folder</button><button id="clearFiles">Clear</button></div>
+        <div class="explorer" id="fileList"><div class="muted small">No files loaded yet.</div></div>
+      </div>
+      <div>
+        <div class="row" style="margin-bottom:8px;"><span class="small muted">Selected:</span><span id="selectedName" class="small">-</span></div>
+        <div class="viewer" id="viewer"><div class="muted small" style="padding:12px;">Select a file. HTML files are rendered in preview iframe.</div></div>
+      </div>
     </div>
   </section>
 </div>
 
+<div class="dock"><button onclick="scrollToId('cronTbody')">🕒 Cron</button><button onclick="scrollToId('sessTbody')">🤖 Sessions</button><button onclick="scrollToId('kanban')">📋 Tasks</button><button onclick="scrollToId('fileList')">📁 Files</button></div>
+
 <script>
-const $ = (id)=>document.getElementById(id);
-const state = {
-  conn: JSON.parse(localStorage.getItem('micmer_ops_conn_v1')||'{"url":"","token":""}'),
-  board: JSON.parse(localStorage.getItem('micmer_ops_board_v1')||'{"tasks":[]}')
+(function(){
+  const KEY='micmer_bot_dash_unlock_v1', PASS='32Opossums!';
+  function done(){document.getElementById('lockScreen')?.remove();}
+  if(sessionStorage.getItem(KEY)==='ok') done();
+  function check(){const v=document.getElementById('pw').value; if(v===PASS){sessionStorage.setItem(KEY,'ok'); done();} else document.getElementById('lockErr').textContent='Wrong password';}
+  document.getElementById('unlock').addEventListener('click',check);
+  document.getElementById('pw').addEventListener('keydown',(e)=>{if(e.key==='Enter') check();});
+})();
+
+const $=(id)=>document.getElementById(id);
+const state={
+  conn:JSON.parse(localStorage.getItem('micmer_ops_conn_v1')||'{"url":"","token":""}'),
+  board:JSON.parse(localStorage.getItem('micmer_ops_board_v1')||'{"tasks":[]}'),
+  vault:localStorage.getItem('micmer_obsidian_vault_path')||'',
+  files:[]
 };
 
-function flash(msg, cls='muted'){ const el=$('flash'); el.className='small '+cls; el.textContent=msg; setTimeout(()=>el.textContent='',2500); }
-function saveConn(){ state.conn={url:$('gwUrl').value.trim(), token:$('gwToken').value.trim()}; localStorage.setItem('micmer_ops_conn_v1',JSON.stringify(state.conn)); flash('Connection saved','ok'); }
-function loadConn(){ $('gwUrl').value=state.conn.url||''; $('gwToken').value=state.conn.token||''; }
+function flash(msg, cls='muted'){const el=$('flash');el.className='small '+cls;el.textContent=msg;setTimeout(()=>el.textContent='',2600)}
+function scrollToId(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'})}
+window.scrollToId=scrollToId;
+
+function loadConn(){ $('gwUrl').value=state.conn.url||''; $('gwToken').value=state.conn.token||''; $('vaultPath').value=state.vault||''; }
+function saveConn(){state.conn={url:$('gwUrl').value.trim(),token:$('gwToken').value.trim()};localStorage.setItem('micmer_ops_conn_v1',JSON.stringify(state.conn));flash('Connection saved','ok')}
 
 async function api(path, method='GET', body){
-  const base = state.conn.url || '';
-  const headers = {'Content-Type':'application/json'};
-  if(state.conn.token) headers['Authorization'] = 'Bearer '+state.conn.token;
-  const res = await fetch(base+path,{method,headers,body:body?JSON.stringify(body):undefined});
+  const base=state.conn.url||''; const headers={'Content-Type':'application/json'};
+  if(state.conn.token) headers['Authorization']='Bearer '+state.conn.token;
+  const res=await fetch(base+path,{method,headers,body:body?JSON.stringify(body):undefined});
   if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
 }
-
-function cronScheduleLabel(s){
-  if(!s) return '-';
-  if(s.kind==='cron') return `cron: ${s.expr}`;
-  if(s.kind==='every') return `every ${Math.round((s.everyMs||0)/60000)}m`;
-  if(s.kind==='at') return `at ${s.at}`;
-  return JSON.stringify(s);
+async function testConn(){
+  const badge=$('connState'); badge.className='pill warn'; badge.textContent='testing…';
+  try{ await api('/api/sessions/list?limit=1'); badge.className='pill ok'; badge.textContent='connected'; }
+  catch(e){ badge.className='pill bad'; badge.textContent='failed'; }
 }
 
+function cronScheduleLabel(s){if(!s) return '-'; if(s.kind==='cron') return `cron: ${s.expr}`; if(s.kind==='every') return `every ${Math.round((s.everyMs||0)/60000)}m`; if(s.kind==='at') return `at ${s.at}`; return JSON.stringify(s)}
 async function loadCron(){
   const tb=$('cronTbody'); tb.innerHTML='<tr><td colspan="4" class="muted">Loading…</td></tr>';
-  try{
-    const r = await api('/api/cron/list?includeDisabled=true');
-    const jobs = r.jobs || r.data || [];
-    if(!jobs.length){tb.innerHTML='<tr><td colspan="4" class="muted">No cron jobs.</td></tr>'; return;}
-    tb.innerHTML = jobs.map(j=>`<tr>
-      <td>${j.name||j.id||j.jobId||'(unnamed)'}</td>
-      <td class="small">${cronScheduleLabel(j.schedule)}</td>
-      <td>${j.enabled?'<span class="pill ok">on</span>':'<span class="pill warn">off</span>'}</td>
-      <td class="row actions">
-        <button onclick="runJob('${j.jobId||j.id}')">Run</button>
-        <button onclick="toggleJob('${j.jobId||j.id}',${j.enabled?'false':'true'})">${j.enabled?'Disable':'Enable'}</button>
-      </td>
-    </tr>`).join('');
-  }catch(e){ tb.innerHTML=`<tr><td colspan="4" class="bad">${e.message}. Tip: use proxy or correct gateway URL/token.</td></tr>`; }
+  try{const r=await api('/api/cron/list?includeDisabled=true');const jobs=r.jobs||r.data||[];if(!jobs.length){tb.innerHTML='<tr><td colspan="4" class="muted">No cron jobs.</td></tr>';return;}
+    tb.innerHTML=jobs.map(j=>`<tr><td>${j.name||j.id||j.jobId||'(unnamed)'}</td><td class="small">${cronScheduleLabel(j.schedule)}</td><td>${j.enabled?'<span class="pill ok">on</span>':'<span class="pill warn">off</span>'}</td><td><button onclick="runJob('${j.jobId||j.id}')">Run</button> <button onclick="toggleJob('${j.jobId||j.id}',${j.enabled?'false':'true'})">${j.enabled?'Disable':'Enable'}</button></td></tr>`).join('');
+  }catch(e){tb.innerHTML=`<tr><td colspan="4" class="bad">${e.message}</td></tr>`;}
 }
-
-async function runJob(id){ try{ await api('/api/cron/run','POST',{jobId:id}); flash('Job run triggered','ok'); }catch(e){flash(e.message,'bad');}}
-async function toggleJob(id, enable){ try{ await api('/api/cron/update','POST',{jobId:id,patch:{enabled:enable===true||enable==='true'}}); await loadCron(); flash('Job updated','ok'); }catch(e){flash(e.message,'bad');}}
-
-async function addOneShot(){
-  const name=$('cronName').value.trim(), at=$('cronWhen').value.trim(), text=$('cronText').value.trim();
-  if(!at||!text) return flash('Need ISO time + reminder text','warn');
-  const job={name,schedule:{kind:'at',at},payload:{kind:'systemEvent',text},sessionTarget:'main',enabled:true};
-  try{ await api('/api/cron/add','POST',{job}); flash('Reminder added','ok'); loadCron(); }
-  catch(e){ flash(e.message,'bad'); }
-}
+async function runJob(id){try{await api('/api/cron/run','POST',{jobId:id});flash('Job run triggered','ok')}catch(e){flash(e.message,'bad')}}
+async function toggleJob(id,enable){try{await api('/api/cron/update','POST',{jobId:id,patch:{enabled:enable===true||enable==='true'}});loadCron();flash('Job updated','ok')}catch(e){flash(e.message,'bad')}}
+async function addOneShot(){const name=$('cronName').value.trim(),at=$('cronWhen').value.trim(),text=$('cronText').value.trim(); if(!at||!text) return flash('Need ISO time + reminder text','warn'); const job={name,schedule:{kind:'at',at},payload:{kind:'systemEvent',text},sessionTarget:'main',enabled:true}; try{await api('/api/cron/add','POST',{job});flash('Reminder added','ok');loadCron()}catch(e){flash(e.message,'bad')}}
 
 async function loadSessions(){
   const tb=$('sessTbody'); tb.innerHTML='<tr><td colspan="4" class="muted">Loading…</td></tr>';
-  try{
-    const r = await api('/api/sessions/list?limit=30&messageLimit=1');
-    const sessions = r.sessions || r.data || [];
-    if(!sessions.length){tb.innerHTML='<tr><td colspan="4" class="muted">No active sessions.</td></tr>';return;}
-    tb.innerHTML=sessions.map(s=>`<tr>
-      <td>${s.label||s.sessionKey||'-'}</td>
-      <td class="small">${(s.kind||'-')}</td>
-      <td class="small">${((s.lastMessage&&s.lastMessage.body)||'').slice(0,90)}</td>
-      <td class="small">${s.updatedAt||s.lastActivityAt||'-'}</td>
-    </tr>`).join('');
-  }catch(e){ tb.innerHTML=`<tr><td colspan="4" class="bad">${e.message}</td></tr>`; }
+  try{const r=await api('/api/sessions/list?limit=40&messageLimit=1');const sessions=r.sessions||r.data||[];if(!sessions.length){tb.innerHTML='<tr><td colspan="4" class="muted">No active sessions.</td></tr>';return;}
+    tb.innerHTML=sessions.map(s=>`<tr><td>${s.label||s.sessionKey||'-'}</td><td class="small">${s.kind||'-'}</td><td class="small">${((s.lastMessage&&s.lastMessage.body)||'').slice(0,100)}</td><td class="small">${s.updatedAt||s.lastActivityAt||'-'}</td></tr>`).join('');
+  }catch(e){tb.innerHTML=`<tr><td colspan="4" class="bad">${e.message}</td></tr>`;}
 }
 
-function saveBoard(){ localStorage.setItem('micmer_ops_board_v1', JSON.stringify(state.board)); }
-function uid(){ return Math.random().toString(36).slice(2,9); }
-function addTask(){
-  const title=$('taskTitle').value.trim(); if(!title) return;
-  const owner=$('taskOwner').value.trim();
-  state.board.tasks.push({id:uid(),title,owner,col:'backlog',createdAt:new Date().toISOString()});
-  $('taskTitle').value=''; $('taskOwner').value='';
-  saveBoard(); renderBoard();
-}
-function delTask(id){ state.board.tasks = state.board.tasks.filter(t=>t.id!==id); saveBoard(); renderBoard(); }
+function saveBoard(){localStorage.setItem('micmer_ops_board_v1',JSON.stringify(state.board))}
+function uid(){return Math.random().toString(36).slice(2,9)}
+function addTask(){const title=$('taskTitle').value.trim();if(!title) return;const owner=$('taskOwner').value.trim();state.board.tasks.push({id:uid(),title,owner,col:'backlog',createdAt:new Date().toISOString()});$('taskTitle').value='';$('taskOwner').value='';saveBoard();renderBoard()}
+function delTask(id){state.board.tasks=state.board.tasks.filter(t=>t.id!==id);saveBoard();renderBoard()}
+function taskHtml(t){return `<div class="task" draggable="true" data-id="${t.id}"><div class="t">${t.title}</div><div class="m">${t.owner?('owner: '+t.owner):''}</div><div class="row" style="margin-top:6px"><button onclick="delTask('${t.id}')">Delete</button></div></div>`}
+function renderBoard(){document.querySelectorAll('.drop').forEach(d=>d.innerHTML='');state.board.tasks.forEach(t=>{const col=document.querySelector(`.drop[data-col="${t.col}"]`);if(col) col.insertAdjacentHTML('beforeend',taskHtml(t))});bindDnD()}
+function bindDnD(){document.querySelectorAll('.task').forEach(el=>el.addEventListener('dragstart',e=>e.dataTransfer.setData('text/plain',el.dataset.id)));document.querySelectorAll('.drop').forEach(drop=>{drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('dragover')});drop.addEventListener('dragleave',()=>drop.classList.remove('dragover'));drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('dragover');const id=e.dataTransfer.getData('text/plain');const t=state.board.tasks.find(x=>x.id===id);if(!t)return;t.col=drop.dataset.col;t.updatedAt=new Date().toISOString();saveBoard();renderBoard()})})}
+function exportBoard(){const blob=new Blob([JSON.stringify(state.board,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='micmer_ops_board.json';a.click()}
+function importBoard(file){const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);if(!j.tasks) throw new Error();state.board=j;saveBoard();renderBoard();flash('Board imported','ok')}catch{flash('Invalid JSON','bad')}};r.readAsText(file)}
 
-function taskHtml(t){
-  return `<div class="task" draggable="true" data-id="${t.id}">
-    <div class="t">${t.title}</div>
-    <div class="m">${t.owner?('owner: '+t.owner):''}</div>
-    <div class="row actions" style="margin-top:6px"><button onclick="delTask('${t.id}')">Delete</button></div>
-  </div>`;
-}
-
-function renderBoard(){
-  document.querySelectorAll('.drop').forEach(d=>d.innerHTML='');
-  state.board.tasks.forEach(t=>{
-    const col=document.querySelector(`.drop[data-col="${t.col}"]`);
-    if(col) col.insertAdjacentHTML('beforeend', taskHtml(t));
-  });
-  bindDnD();
+// Obsidian helpers
+function saveVault(){state.vault=$('vaultPath').value.trim();localStorage.setItem('micmer_obsidian_vault_path',state.vault);flash('Vault path saved','ok')}
+function openObsidian(){window.location.href='obsidian://open'}
+function openVaultFolder(){
+  const p=state.vault||$('vaultPath').value.trim();
+  if(!p) return flash('Set vault path first','warn');
+  alert('For security, browsers cannot open arbitrary local folders directly from web pages. Use this path in your file picker:\n'+p);
 }
 
-function bindDnD(){
-  document.querySelectorAll('.task').forEach(el=>{
-    el.addEventListener('dragstart', e=>e.dataTransfer.setData('text/plain', el.dataset.id));
-  });
-  document.querySelectorAll('.drop').forEach(drop=>{
-    drop.addEventListener('dragover', e=>{e.preventDefault(); drop.classList.add('dragover');});
-    drop.addEventListener('dragleave', ()=>drop.classList.remove('dragover'));
-    drop.addEventListener('drop', e=>{
-      e.preventDefault(); drop.classList.remove('dragover');
-      const id=e.dataTransfer.getData('text/plain');
-      const t=state.board.tasks.find(x=>x.id===id); if(!t) return;
-      t.col=drop.dataset.col; t.updatedAt=new Date().toISOString();
-      saveBoard(); renderBoard();
-    });
-  });
-}
-
-function exportBoard(){
-  const blob = new Blob([JSON.stringify(state.board,null,2)], {type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='micmer_ops_board.json'; a.click();
-}
-function importBoard(file){
-  const r=new FileReader(); r.onload=()=>{ try{ const j=JSON.parse(r.result); if(!j.tasks) throw new Error('Invalid'); state.board=j; saveBoard(); renderBoard(); flash('Board imported','ok'); }catch{ flash('Invalid JSON','bad'); } }; r.readAsText(file);
-}
+// File explorer + html loader
+function clearFiles(){state.files=[];renderFiles();$('viewer').innerHTML='<div class="muted small" style="padding:12px;">No files loaded.</div>';$('selectedName').textContent='-'}
+function pickFiles(){const input=document.createElement('input');input.type='file';input.multiple=true;input.webkitdirectory=true;input.onchange=()=>{state.files=[...input.files];renderFiles()};input.click()}
+function renderFiles(){const box=$('fileList'); if(!state.files.length){box.innerHTML='<div class="muted small">No files loaded yet.</div>'; return;} box.innerHTML=state.files.map((f,i)=>`<div class="file" data-i="${i}">${f.webkitRelativePath||f.name}</div>`).join(''); box.querySelectorAll('.file').forEach(el=>el.onclick=()=>openFile(Number(el.dataset.i),el));}
+function openFile(i,el){const f=state.files[i]; if(!f) return; document.querySelectorAll('.file').forEach(x=>x.classList.remove('active')); if(el) el.classList.add('active'); $('selectedName').textContent=f.webkitRelativePath||f.name; const ext=(f.name.split('.').pop()||'').toLowerCase(); if(ext==='html'||ext==='htm'){const u=URL.createObjectURL(f); $('viewer').innerHTML=`<iframe src="${u}"></iframe>`; return;} const fr=new FileReader(); fr.onload=()=>{ $('viewer').innerHTML=`<pre>${escapeHtml(fr.result)}</pre>`; }; fr.readAsText(f); }
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 
 window.runJob=runJob; window.toggleJob=toggleJob; window.delTask=delTask;
-$('saveConn').onclick=saveConn; $('loadCron').onclick=loadCron; $('loadSess').onclick=loadSessions; $('addCron').onclick=addOneShot;
-$('addTask').onclick=addTask; $('exportBoard').onclick=exportBoard; $('importBoardBtn').onclick=()=>$('importBoard').click();
-$('importBoard').addEventListener('change',e=>e.target.files[0]&&importBoard(e.target.files[0]));
+$('saveConn').onclick=saveConn; $('testConn').onclick=testConn; $('loadCron').onclick=loadCron; $('loadSess').onclick=loadSessions; $('addCron').onclick=addOneShot;
+$('addTask').onclick=addTask; $('exportBoard').onclick=exportBoard; $('importBoardBtn').onclick=()=>$('importBoard').click(); $('importBoard').onchange=(e)=>e.target.files[0]&&importBoard(e.target.files[0]);
+$('saveVault').onclick=saveVault; $('openObsidian').onclick=openObsidian; $('openVaultFolder').onclick=openVaultFolder;
+$('pickFiles').onclick=pickFiles; $('clearFiles').onclick=clearFiles;
 
 loadConn(); renderBoard();
 </script>
