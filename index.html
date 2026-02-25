@@ -93,6 +93,32 @@
     </section>
   </div>
 
+
+
+  <section class="panel" style="margin-top:12px;">
+    <h2>North Star operating loop (10x)</h2>
+    <div class="grid g3">
+      <div>
+        <div class="small muted">FF metric</div><input id="nsFF" placeholder="e.g. qualified subscribers/post" style="width:100%"/>
+      </div>
+      <div>
+        <div class="small muted">Kineo metric</div><input id="nsKineo" placeholder="e.g. activated athletes/week" style="width:100%"/>
+      </div>
+      <div>
+        <div class="small muted">Ops metric</div><input id="nsOps" placeholder="e.g. PR merged w/ zero rule violations" style="width:100%"/>
+      </div>
+    </div>
+    <div class="grid g3" style="margin-top:8px;">
+      <input id="betGrowth" placeholder="Weekly bet #1 (growth)" />
+      <input id="betProduct" placeholder="Weekly bet #2 (product)" />
+      <input id="betContent" placeholder="Weekly bet #3 (content)" />
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <input id="killRule" style="flex:1" placeholder="Kill-switch rule (default: cut tasks not moving metric in 7 days)" />
+      <button id="saveNorthstar">Save loop</button>
+    </div>
+  </section>
+
   <div class="grid g2" style="margin-top:12px;">
     <section class="panel">
       <h2>Cron jobs</h2>
@@ -157,10 +183,24 @@ const state={
   conn:(()=>{try{const c=JSON.parse(localStorage.getItem('micmer_ops_conn_v1')||'{}');return {...DEFAULT_CONN,...c};}catch{return {...DEFAULT_CONN};}})(),
   board:JSON.parse(localStorage.getItem('micmer_ops_board_v1')||'{"tasks":[]}'),
   vault:localStorage.getItem('micmer_obsidian_vault_path')||'',
-  files:[]
+  files:[],
+  northstar:JSON.parse(localStorage.getItem('micmer_northstar_v1')||'{"ff":"qualified subscribers/post","kineo":"activated athletes/week","ops":"PR merged with zero rule violations","growth":"","product":"","content":"","kill":"Cut tasks that don't move a metric in 7 days"}')
 };
 
 function flash(msg, cls='muted'){const el=$('flash');el.className='small '+cls;el.textContent=msg;setTimeout(()=>el.textContent='',2600)}
+
+function loadNorthstar(){
+  const n=state.northstar||{};
+  $('nsFF').value=n.ff||''; $('nsKineo').value=n.kineo||''; $('nsOps').value=n.ops||'';
+  $('betGrowth').value=n.growth||''; $('betProduct').value=n.product||''; $('betContent').value=n.content||'';
+  $('killRule').value=n.kill||"Cut tasks that don't move a metric in 7 days";
+}
+function saveNorthstar(){
+  state.northstar={ff:$('nsFF').value.trim(),kineo:$('nsKineo').value.trim(),ops:$('nsOps').value.trim(),growth:$('betGrowth').value.trim(),product:$('betProduct').value.trim(),content:$('betContent').value.trim(),kill:$('killRule').value.trim()};
+  localStorage.setItem('micmer_northstar_v1',JSON.stringify(state.northstar));
+  flash('North Star loop saved','ok');
+}
+
 function scrollToId(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'})}
 window.scrollToId=scrollToId;
 
@@ -315,13 +355,13 @@ function openFile(i,el){const f=state.files[i]; if(!f) return; document.querySel
 function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 
 window.runJob=runJob; window.toggleJob=toggleJob; window.delTask=delTask;
-$('saveConn').onclick=saveConn; $('autoSetup').onclick=autoSetupConnection; $('testConn').onclick=testConn; $('loadCron').onclick=loadCron; $('loadSess').onclick=loadSessions; $('addCron').onclick=addOneShot;
+$('saveConn').onclick=saveConn; $('saveNorthstar').onclick=saveNorthstar; $('autoSetup').onclick=autoSetupConnection; $('testConn').onclick=testConn; $('loadCron').onclick=loadCron; $('loadSess').onclick=loadSessions; $('addCron').onclick=addOneShot;
 $('addTask').onclick=addTask; $('exportBoard').onclick=exportBoard; $('importBoardBtn').onclick=()=>$('importBoard').click(); $('importBoard').onchange=(e)=>e.target.files[0]&&importBoard(e.target.files[0]);
 $('saveVault').onclick=saveVault; $('openObsidian').onclick=openObsidian; $('openVaultFolder').onclick=openVaultFolder; $('listVault').onclick=listVault;
 $('pickFiles').onclick=pickFiles; $('clearFiles').onclick=clearFiles;
 $('mdLoad').onclick=loadMarkdown; $('mdSave').onclick=saveMarkdown; $('mdPreview').onclick=renderMarkdown; $('mdEditor').addEventListener('input',renderMarkdown);
 
-loadConn(); renderBoard(); renderMarkdown();
+loadConn(); loadNorthstar(); renderBoard(); renderMarkdown();
 setTimeout(async ()=>{try{await autoSetupConnection(); await loadCron(); await loadSessions();}catch(_e){}},150);
 </script>
 </body>
